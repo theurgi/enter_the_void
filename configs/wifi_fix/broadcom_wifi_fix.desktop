@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Broadcom WiFi Fix
+Comment=Workaround for Broadcom WiFi post-reboot issue
+Exec=sudo /usr/local/bin/broadcom_wifi_fix.sh
+Terminal=false
+Hidden=false
