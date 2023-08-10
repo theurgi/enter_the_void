@@ -1,0 +1,101 @@
+{
+	"[markdown]": {
+		// "editor.wordWrap": "wordWrapColumn"
+		// "editor.wordWrapColumn": 80
+		"editor.insertSpaces": true,
+		"editor.tabSize": 2
+	},
+	"[python]": {
+		"editor.defaultFormatter": "ms-python.black-formatter",
+		"editor.formatOnSave": true
+	},
+	"breadcrumbs.enabled": false,
+	"cSpell.enableFiletypes": ["markdown"],
+	"cSpell.language": "en",
+	"diffEditor.ignoreTrimWhitespace": false,
+	"editor.acceptSuggestionOnEnter": "off",
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.fontLigatures": true,
+	"editor.fontSize": 14,
+	"editor.formatOnSave": true,
+	"editor.inlineSuggest.enabled": true,
+	"editor.minimap.enabled": false,
+	"editor.renderWhitespace": "none",
+	"editor.tabSize": 2,
+	// "editor.wordWrap": "wordWrapColumn",
+	// "editor.wordWrapColumn": 80,
+	"explorer.autoReveal": false,
+	"explorer.confirmDelete": false,
+	"explorer.confirmDragAndDrop": false,
+	"files.autoSave": "onFocusChange",
+	"markdown.extension.toc.updateOnSave": false,
+	"python.defaultInterpreterPath": "./venv/bin/python3",
+	"python.formatting.blackPath": "./venv/bin/black",
+	"python.formatting.provider": "none",
+	"python.linting.enabled": true,
+	"python.linting.flake8Enabled": true,
+	"python.linting.flake8Path": "./venv/bin/flake8",
+	"python.linting.lintOnSave": true,
+	"python.linting.pylintEnabled": false,
+	"security.workspace.trust.untrustedFiles": "open",
+	"telemetry.telemetryLevel": "off",
+	"terminal.integrated.cursorBlinking": true,
+	"terminal.integrated.cursorStyle": "line",
+	"todohighlight.keywords": [
+		{
+			"backgroundColor": "#48bbff",
+			"color": "#000",
+			"text": "NOTE"
+		},
+		{
+			"backgroundColor": "#48bbff",
+			"color": "#000",
+			"text": "???"
+		},
+		{
+			"backgroundColor": "#ffff00",
+			"color": "#000",
+			"text": "TEST"
+		},
+		{
+			"backgroundColor": "#00ffd5",
+			"color": "#000",
+			"text": "TODO"
+		},
+		{
+			"backgroundColor": "#ff1493",
+			"color": "#000",
+			"text": "BREAKING"
+		},
+		{
+			"backgroundColor": "#ff1493",
+			"color": "#000",
+			"text": "BUG"
+		},
+		{
+			"backgroundColor": "#ff1493",
+			"color": "#000",
+			"text": "ERROR"
+		},
+		{
+			"backgroundColor": "#ff1493",
+			"color": "#000",
+			"text": "HACK"
+		},
+		{
+			"backgroundColor": "#ff1493",
+			"color": "#000",
+			"text": "REMOVE"
+		}
+	],
+	"update.showReleaseNotes": false,
+	"walTheme.autoUpdate": true,
+	"window.menuBarVisibility": "toggle",
+	"workbench.activityBar.visible": false,
+	"workbench.layoutControl.enabled": false,
+	"workbench.startupEditor": "none",
+	"workbench.tips.enabled": false,
+	"workbench.trustedDomains.promptInTrustedWorkspace": true,
+	"zenMode.fullScreen": false,
+	"workbench.colorTheme": "Catppuccin Mocha"
+}
