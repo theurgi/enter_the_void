@@ -72,7 +72,7 @@ install_network_utility() {
 		local iwd_dir_path=/etc/iwd
 
 		mkdir $SYSTEM_ROOT/$iwd_dir_path
-		cp ../configs/$iwd_dir_path/main.conf $SYSTEM_ROOT/$iwd_dir_path/main.conf
+		cp $CONFIGS_DIR/$iwd_dir_path/main.conf $SYSTEM_ROOT/$iwd_dir_path/main.conf
 	fi
 }
 

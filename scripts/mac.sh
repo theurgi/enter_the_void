@@ -91,7 +91,7 @@ configure_packages() {
 		local config_path=/etc/X11/xorg.conf.d
 
 		mkdir -p $SYSTEM_ROOT/$config_path
-		cp ../configs/$config_path/50-mtrack.conf $SYSTEM_ROOT/$config_path/50-mtrack.conf
+		cp $CONFIGS_DIR/$config_path/50-mtrack.conf $SYSTEM_ROOT/$config_path/50-mtrack.conf
 	fi
 }
 

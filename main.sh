@@ -14,6 +14,8 @@ if [ -f .env ]; then
 	source .env
 fi
 
+CONFIGS_DIR="./configs"
+
 # Sync the package repository and update xbps.
 xbps-install -Suy xbps
 
