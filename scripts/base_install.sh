@@ -267,7 +267,7 @@ format_and_mount_filesystems() {
 # Install Void's core packages along with the necessary packages required by
 # this installation script.
 install_base_system() {
-	local pkgs_particular_to_this_script=("cryptsetup" "grub-x86_64-efi" "lvm2")
+	local pkgs_particular_to_this_script=("cryptsetup" "grub-x86_64-efi" "lvm2" "curl")
 
 	local diff_base_packages=""
 
@@ -280,9 +280,10 @@ install_base_system() {
 	#
 	# https://docs.voidlinux.org/config/kernel.html#removing-the-default-kernel-series
 	if [ "$LINUX_VERSION" != "linux" ]; then
-		mkdir $SYSTEM_ROOT/etc/xbps.d
-		echo "ignorepkg=linux" >>$SYSTEM_ROOT/etc/xbps.d/ignore.conf
-		echo "ignorepkg=linux-headers" >>$SYSTEM_ROOT/etc/xbps.d/ignore.conf
+		local -a ignore_conf_lines=("ignorepkg=linux" "ignorepkg=linux-headers")
+		mkdir -p $SYSTEM_ROOT/etc/xbps.d
+		write_to_file ignore_conf_lines /etc/xbps.d/ignore.conf
+		write_to_file ignore_conf_lines $SYSTEM_ROOT/etc/xbps.d/ignore.conf
 		xbps-pkgdb -m manual linux-base
 	fi
 
@@ -290,6 +291,8 @@ install_base_system() {
 		base-minimal $diff_base_packages \
 		${LINUX_VERSION} ${LINUX_VERSION}-headers linux-base \
 		${pkgs_particular_to_this_script[@]}
+
+	xbps-remove linux linux-headers
 }
 
 # Function to install user-provided packages
