@@ -280,8 +280,9 @@ install_base_system() {
 	#
 	# https://docs.voidlinux.org/config/kernel.html#removing-the-default-kernel-series
 	if [ "$LINUX_VERSION" != "linux" ]; then
-		echo "ignorepkg=linux" >>/etc/xbps.d/ignore.conf
-		echo "ignorepkg=linux-headers" >>/etc/xbps.d/ignore.conf
+		mkdir $SYSTEM_ROOT/etc/xbps.d
+		echo "ignorepkg=linux" >>$SYSTEM_ROOT/etc/xbps.d/ignore.conf
+		echo "ignorepkg=linux-headers" >>$SYSTEM_ROOT/etc/xbps.d/ignore.conf
 		xbps-pkgdb -m manual linux-base
 	fi
 
