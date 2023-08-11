@@ -29,7 +29,5 @@ source ./scripts/broadcom-wl-dkms.sh
 source ./scripts/broadcom-wifi-fix.sh
 source ./scripts/nvidia_340.sh
 
-cp -R ./configs/user/* $SYSTEM_ROOT/home/$USERNAME
-
 # Installation cleanup
 cleanup_and_reboot
