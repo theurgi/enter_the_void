@@ -1,82 +1,102 @@
 #!/bin/bash
-
+#
 # This script depends on the following User Configured Global Variables defined
-# in env.sh:
+# in config.sh:
 #
+# - LINUX_VERSION
 # - SYSTEM_ROOT
-#
-# More legacy drivers at: https://www.nvidia.com/en-us/drivers/unix/
 
-if [[ "$LIBC" != "glibc" ]]; then
-	echo "Error: The NVIDIA drivers are not compatible with $LIBC. Only glibc is supported."
+set -e
+
+# Base directory and driver details
+BASE_DIR=$(dirname "$0")
+DRIVER_URL="https://us.download.nvidia.com/XFree86/Linux-x86_64/340.108/NVIDIA-Linux-x86_64-340.108.run"
+UNPATCHED_DRIVER=$(basename "$DRIVER_URL")
+EXTRACTED_UNPATCHED_DRIVER="${UNPATCHED_DRIVER%.run}"
+
+# Expected blake2 hash of the NVIDIA driver for verification
+EXPECTED_B2SUM="890d00ff2d1d1a602d7ce65e62d5c3fdb5d9096b61dbfa41e3348260e0c0cc068f92b32ee28a48404376e7a311e12ad1535c68d89e76a956ecabc4e452030f15"
+
+# Determine the actual kernel version based on LINUX_VERSION
+if [ "$LINUX_VERSION" = "linux" ] || [ "$LINUX_VERSION" = "linux-lts" ] || [ "$LINUX_VERSION" = "linux-mainline" ]; then
+	KERNEL_VERSION=$(xbps-query -R "$LINUX_VERSION" | grep -oP "pkgver: $LINUX_VERSION-\K[^_]+" | awk -F. '{print $1"."$2}')
+else
+	KERNEL_VERSION=$(echo "$LINUX_VERSION" | sed 's/linux//')
+fi
+
+PATCH_FILE="NVIDIA-340xx/kernel-$KERNEL_VERSION.patch"
+
+# Check if a patch exists for this kernel version
+if [ ! -f "$PATCH_FILE" ]; then
+	echo "Error: No patch available for kernel version $KERNEL_VERSION"
 	exit 1
 fi
 
-# Verify user config
-check_in_list SYSTEM_ROOT "/mnt"
+PATCHED_DRIVER="$EXTRACTED_UNPATCHED_DRIVER-patched-kernel-$KERNEL_VERSION.run"
+PATCHED_DRIVER_DESCRIPTION="NVIDIA driver 340.108 patched for kernel $KERNEL_VERSION"
 
 # Install dependencies
-declare -a depends=("libglvnd" "libvdpau" "libglapi")
-xbps-install -Sy -r $SYSTEM_ROOT "${depends[@]}"
+declare -a dev_dependencies=("patch" "wget")
+xbps-install -Sy "${dev_dependencies[@]}"
 
-# Set the URL of the NVIDIA driver
-NVIDIA_DRIVER_URL="https://us.download.nvidia.com/XFree86/Linux-x86_64/340.108/NVIDIA-Linux-x86_64-340.108.run"
-NVIDIA_DRIVER_PATH="$SYSTEM_ROOT/tmp/NVIDIA-Linux-x86_64-340.108.run"
+declare -a installation_dependencies=("libglvnd" "libvdpau" "libglapi")
+xbps-install -Sy -r $SYSTEM_ROOT "${installation_dependencies[@]}"
 
-# Download the NVIDIA driver to the system root's /tmp directory
-curl -o $NVIDIA_DRIVER_PATH $NVIDIA_DRIVER_URL
+# Change to the base directory
+cd "$BASE_DIR"
 
-# Make the downloaded file executable
-chmod +x $NVIDIA_DRIVER_PATH
+# Download the driver if it's not already present
+if [ ! -f "$UNPATCHED_DRIVER" ]; then
+	echo "Downloading the NVIDIA driver..."
+	wget "$DRIVER_URL"
+fi
 
-# Change directory into the extracted driver
-cd $SYSTEM_ROOT/tmp/NVIDIA-Linux-x86_64-340.108
+# Verify the driver's integrity
+echo "Verifying driver integrity..."
+B2SUM_HASH=$(b2sum "$UNPATCHED_DRIVER" | cut -f 1 -d " ")
+if [ "$EXPECTED_B2SUM" != "$B2SUM_HASH" ]; then
+	echo "Error: The driver's hash doesn't match the expected value. Aborting."
+	exit 1
+fi
 
-# Apply the patch
-#
-# https://github.com/warpme/minimyth2/tree/master/script/nvidia/nvidia-340.108/files
-cat <<'EOP' | patch -p1
-diff -Naur NVIDIA-Linux-x86_64-340.108-old/kernel/nv-drm.c NVIDIA-Linux-x86_64-340.108-new/kernel/nv-drm.c
---- NVIDIA-Linux-x86_64-340.108-old/kernel/nv-drm.c	2021-11-06 20:08:18.779739237 +0200
-+++ NVIDIA-Linux-x86_64-340.108-new/kernel/nv-drm.c	2021-11-06 20:42:13.443288819 +0200
-@@ -529,7 +529,9 @@ RM_STATUS NV_API_CALL nv_alloc_os_descri
- #if defined(NV_DRM_GEM_OBJECT_PUT_UNLOCKED_PRESENT)
-     drm_gem_object_put_unlocked(&nv_obj->base);
- #else
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
-+    drm_gem_object_put(&nv_obj->base);
-+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
-     drm_gem_object_put_locked(&nv_obj->base);
- #else
-     drm_gem_object_unreference_unlocked(&nv_obj->base);
-EOP
+# Make driver executable
+chmod +x "$UNPATCHED_DRIVER"
 
-# Execute the NVIDIA driver installer
-chroot $SYSTEM_ROOT tmp/NVIDIA-Linux-x86_64-340.108/nvidia-installer --silent --no-questions
+# Extract
+"$UNPATCHED_DRIVER" --extract-only
+
+# Change to the extracted directory
+cd "$EXTRACTED_UNPATCHED_DRIVER"
+
+# Apply the patch to the extracted contents
+echo "Patching the driver for kernel $KERNEL_VERSION..."
+patch -Np1 -i "../$PATCH_FILE"
+
+# Repackage the patched driver
+echo "Repackaging the patched driver..."
+./makeself.sh --target-os Linux --target-arch x86_64 "$EXTRACTED_UNPATCHED_DRIVER" "$PATCHED_DRIVER" "$PATCHED_DRIVER_DESCRIPTION" ./nvidia-installer
+
+# Move the repackaged driver to $SYSTEM_ROOT/tmp
+echo "Moving repackaged driver to $SYSTEM_ROOT/tmp..."
+mv "$PATCHED_DRIVER" "$SYSTEM_ROOT/tmp/"
+
+# Change back to base directory
+cd $BASE_DIR
+
+# Blacklist the nouveau driver
+echo "Blacklisting nouveau driver..."
+echo "blacklist nouveau" >"$SYSTEM_ROOT/etc/modprobe.d/disable-nouveau.conf"
+
+# Disable the nouveau driver
+chroot "$SYSTEM_ROOT" rmmod nouveau || echo "Nouveau module not loaded."
+
+# Run the repackaged driver installer from chroot environment
+echo "Installing the repackaged NVIDIA driver..."
+chroot "$SYSTEM_ROOT" sh "/tmp/$PATCHED_DRIVER"
 
 # Remove the installer and extracted folder after completion
-rm -r $SYSTEM_ROOT/tmp/NVIDIA-Linux-x86_64-340.108
-rm $NVIDIA_DRIVER_PATH
+rm -rf $SYSTEM_ROOT/tmp/$PATCHED_DRIVER
 
-# Write dkms.conf for nvidia340
-mkdir -p $SYSTEM_ROOT/usr/src/nvidia340-340.108/
-cat <<EOF >$SYSTEM_ROOT/usr/src/nvidia340-340.108/dkms.conf
-PACKAGE_NAME="nvidia340"
-PACKAGE_VERSION="340.108"
-AUTOINSTALL="yes"
-MAKE[0]="'make' __MAKEJOBS NV_EXCLUDE_BUILD_MODULES='' KERNEL_UNAME=\${kernelver} modules"
-BUILT_MODULE_NAME[0]="nvidia"
-DEST_MODULE_LOCATION[0]="/kernel/drivers/video"
-BUILT_MODULE_NAME[1]="nvidia-modeset"
-DEST_MODULE_LOCATION[1]="/kernel/drivers/video"
-BUILT_MODULE_NAME[2]="nvidia-drm"
-DEST_MODULE_LOCATION[2]="/kernel/drivers/video"
-EOF
+echo "Driver installation completed!"
 
-# Blacklist nouveau
-mkdir -p $SYSTEM_ROOT/usr/lib/modprobe.d
-echo "blacklist nouveau" >$SYSTEM_ROOT/usr/lib/modprobe.d/nvidia.conf
-chmod 644 $SYSTEM_ROOT/usr/lib/modprobe.d/nvidia.conf
-
-echo "NVIDIA driver installed."
+exit 0
