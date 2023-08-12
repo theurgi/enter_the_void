@@ -43,12 +43,9 @@ xbps-install -Sy "${dev_dependencies[@]}"
 declare -a installation_dependencies=("libglvnd" "libvdpau" "libglapi")
 xbps-install -Sy -r $SYSTEM_ROOT "${installation_dependencies[@]}"
 
-# Change to the staging directory to process and patch the drivers.
-cd "$STAGING_DIR"
-
 if [ ! -f "$UNPATCHED_DRIVER" ]; then
 	echo "Downloading the NVIDIA driver..."
-	wget "$DRIVER_URL"
+	wget -O "$UNPATCHED_DRIVER" "$DRIVER_URL"
 fi
 
 # Verify the driver's integrity
@@ -68,8 +65,8 @@ chmod +x "$UNPATCHED_DRIVER"
 "$UNPATCHED_DRIVER" --extract-only
 
 # Incrementally apply patches up to LINUX_VERSION
-cd "$DRIVER_EXTRACTION_DIR"
-for patch_file in $(ls $STAGING_DIR/nvidia-340xx/0*.patch | sort); do
+pushd "$DRIVER_EXTRACTION_DIR"
+for patch_file in $(ls "$STAGING_DIR/nvidia-340xx/0*.patch" | sort); do
 	# Extract version number from the patch filename
 	patch_version=${patch_file##*-}
 	patch_version=${patch_version%.patch}
@@ -85,10 +82,11 @@ for patch_file in $(ls $STAGING_DIR/nvidia-340xx/0*.patch | sort); do
 		break
 	fi
 done
+popd
 
 # Repackage the patched driver
 echo "Repackaging the patched driver..."
-./makeself.sh \
+"$DRIVER_EXTRACTION_DIR/makeself.sh" \
 	--target-os Linux \
 	--target-arch x86_64 \
 	"$DRIVER_EXTRACTION_DIR" \
@@ -99,9 +97,6 @@ echo "Repackaging the patched driver..."
 echo "Moving repackaged driver to $SYSTEM_ROOT/tmp..."
 mv "$PATCHED_DRIVER" "$SYSTEM_ROOT/tmp/"
 
-# Change back to base directory
-cd $BASE_DIR
-
 # Blacklist the nouveau driver
 echo "Blacklisting nouveau driver..."
 echo "blacklist nouveau" >"$SYSTEM_ROOT/etc/modprobe.d/disable-nouveau.conf"
@@ -111,11 +106,11 @@ chroot "$SYSTEM_ROOT" rmmod nouveau || echo "Nouveau module not loaded."
 
 # Run the repackaged driver installer from chroot environment
 echo "Installing the repackaged NVIDIA driver..."
-chroot "$SYSTEM_ROOT" sh "/tmp/$PATCHED_DRIVER"
+chroot "$SYSTEM_ROOT" sh "/tmp/$(basename "$PATCHED_DRIVER")"
 
 # Remove the installer and extracted folder after completion
 # TODO rm staging directory
-rm -rf $SYSTEM_ROOT/tmp/$PATCHED_DRIVER
+rm -rf "$SYSTEM_ROOT/tmp/$(basename "$PATCHED_DRIVER")"
 
 echo "Driver installation completed!"
 
