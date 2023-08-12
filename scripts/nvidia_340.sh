@@ -11,7 +11,7 @@ set -e
 # Base directory
 BASE_DIR=$(dirname "$0")
 
-# Create a staging directory to store and process the drivers and patch files.
+# Create a staging directory to store and process the drivers and patch files
 STAGING_DIR="$BASE_DIR/staging"
 mkdir -p "$STAGING_DIR"
 
@@ -35,13 +35,13 @@ else
 	KERNEL_VERSION=$(echo "$LINUX_VERSION" | sed 's/linux//')
 fi
 
-# Ensure the dependencies of this script are satisfied.
-declare -a dev_dependencies=("patch" "wget")
-xbps-install -Sy "${dev_dependencies[@]}"
+# Ensure the dependencies of this script are satisfied
+declare -a DEV_PACKAGES=("patch" "wget")
+xbps-install -Sy "${DEV_PACKAGES[@]}"
 
-# Ensure the dependencies of the Nvidia drivers exist on the Void installation.
-declare -a installation_dependencies=("libglvnd" "libvdpau" "libglapi")
-xbps-install -Sy -r $SYSTEM_ROOT "${installation_dependencies[@]}"
+# Ensure the dependencies of the Nvidia drivers exist on the Void installation
+declare -a INSTALLATION_PACKAGES=("libglvnd" "libvdpau" "libglapi")
+xbps-install -Sy -r $SYSTEM_ROOT "${INSTALLATION_PACKAGES[@]}"
 
 if [ ! -f "$UNPATCHED_DRIVER" ]; then
 	echo "Downloading the NVIDIA driver..."
@@ -56,7 +56,7 @@ if [ "$EXPECTED_DRIVER_HASH" != "$DRIVER_HASH" ]; then
 	exit 1
 fi
 
-# Download and extract the AUR patches to the staging directory.
+# Download and extract the AUR patches to the staging directory
 wget -O "$STAGING_DIR/nvidia-340xx.tar.gz" "$AUR_PATCHES_URL"
 tar xvf "$STAGING_DIR/nvidia-340xx.tar.gz" -C "$STAGING_DIR"
 
@@ -109,8 +109,9 @@ echo "Installing the repackaged NVIDIA driver..."
 chroot "$SYSTEM_ROOT" sh "/tmp/$(basename "$PATCHED_DRIVER")"
 
 # Remove the installer and extracted folder after completion
-# TODO rm staging directory
+echo "Cleaning up temporary installation assets..."
 rm -rf "$SYSTEM_ROOT/tmp/$(basename "$PATCHED_DRIVER")"
+rm -rf "$STAGING_DIR"
 
 echo "Driver installation completed!"
 
