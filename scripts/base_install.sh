@@ -292,7 +292,7 @@ install_base_system() {
 		${LINUX_VERSION} ${LINUX_VERSION}-headers linux-base \
 		${pkgs_particular_to_this_script[@]}
 
-	xbps-remove linux linux-headers
+	xbps-remove -y linux linux-headers
 }
 
 # Function to install user-provided packages
