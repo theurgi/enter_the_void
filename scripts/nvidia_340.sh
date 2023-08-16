@@ -10,6 +10,9 @@
 # - x86_64 architecture
 # - 64-bit driver installation
 
+INSTALL_NVIDIA_DKMS="true"
+INSTALL_NVIDIA_OPENCL="true"
+
 set -e
 
 # Base directory
@@ -86,17 +89,7 @@ for patch_file in $(ls $STAGING_DIR/nvidia-340xx/0*.patch | sort); do
 		echo "Applying patch for kernel $patch_version..."
 		patch -Np1 <"$patch_file"
 	fi
-
-	# TODO can simplify or remove this
-	# If the patch version equals the kernel version, break out of loop after applying
-	if [[ $patch_version == $KERNEL_VERSION ]]; then
-		break
-	fi
 done
-
-# ──────────────────────────────────────────────────────────────────────────────
-# ───────────────────────────── Start Installation ─────────────────────────────
-# ──────────────────────────────────────────────────────────────────────────────
 
 # X driver
 install -m 755 nvidia_drv.so "$SYSTEM_ROOT/usr/lib/xorg/modules/drivers"
@@ -106,21 +99,23 @@ install -m 755 "libglx.so.${DRIVER_VERSION}" "$SYSTEM_ROOT/usr/lib/nvidia/xorg/"
 ln -sf "libglx.so.${DRIVER_VERSION}" "$SYSTEM_ROOT/usr/lib/nvidia/xorg/libglx.so.1"
 ln -sf "libglx.so.${DRIVER_VERSION}" "$SYSTEM_ROOT/usr/lib/nvidia/xorg/libglx.so"
 
-# # TODO install/write_file to /etc/X11/xorg.conf.d/20-nvidia.conf
-# Section "Files"
-#   ModulePath   "/usr/lib64/nvidia/xorg"
-#   ModulePath   "/usr/lib64/xorg/modules"
-# EndSection
+# Create Xorg config
+cat <<'EOF' >"$SYSTEM_ROOT/etc/X11/xorg.conf.d/20-nvidia.conf"
+Section "Files"
+  ModulePath   "/usr/lib64/nvidia/xorg"
+  ModulePath   "/usr/lib64/xorg/modules"
+EndSection
 
-# Section "Device"
-#   Identifier "Nvidia Card"
-#   Driver "nvidia"
-#   VendorName "NVIDIA Corporation"
-# EndSection
+Section "Device"
+  Identifier "Nvidia Card"
+  Driver "nvidia"
+  VendorName "NVIDIA Corporation"
+EndSection
 
-# Section "ServerFlags"
-#   Option "IgnoreABI" "1"
-# EndSection
+Section "ServerFlags"
+  Option "IgnoreABI" "1"
+EndSection
+EOF
 
 # OpenGL libraries (GL, EGL and GLES)
 install -m 755 "libGL.so.${DRIVER_VERSION}" "$SYSTEM_ROOT/usr/lib/"
@@ -213,33 +208,42 @@ install -m 644 "LICENSE" "$SYSTEM_ROOT/usr/share/licenses/NVIDIA/"
 install -m 644 "README.txt" "$SYSTEM_ROOT/usr/share/doc/NVIDIA/README"
 install -m 644 "NVIDIA_Changelog" "$SYSTEM_ROOT/usr/share/doc/NVIDIA/"
 
-# opencl pkg
-install -m 644 "nvidia.icd" "$SYSTEM_ROOT/etc/OpenCL/vendors"
+if [ "$INSTALL_NVIDIA_DKMS" = "true" ]; then
+	echo "Installing nvidia340-dkms..."
 
-install -m 755 "libnvidia-compiler.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib"
-ln -sf "libnvidia-compiler.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-compiler.so"
-ln -sf "libnvidia-compiler.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-compiler.so.1"
+	# Ensure dkms is installed
+	xbps-install -Sy -r $SYSTEM_ROOT dkms
 
-install -m 755 "libnvidia-opencl.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib"
-ln -sf "libnvidia-opencl.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-opencl.so"
-ln -sf "libnvidia-opencl.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-opencl.so.1"
+	mkdir -p ${SYSTEM_ROOT}/usr/src/nvidia-${DRIVER_VERSION}
+	cat kernel/uvm/dkms.conf.fragment >>kernel/dkms.conf
+	cp -r "kernel/*" ${SYSTEM_ROOT}/usr/src/nvidia-${DRIVER_VERSION}
 
-# DKMS
-mkdir -p "$SYSTEM_ROOT/usr/src/nvidia-$DRIVER_VERSION"
-cat "kernel/uvm/dkms.conf.fragment" >>"kernel/dkms.conf"
-cp -r "kernel/*" "$SYSTEM_ROOT/usr/src/nvidia-$DRIVER_VERSION"
+	mkdir -p ${SYSTEM_ROOT}/usr/lib/modules-load.d
+	echo "nvidia" >${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia.conf
+	chmod 644 ${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia.conf
 
-# Load the kernel modules at system boot
-mkdir -p "$SYSTEM_ROOT/usr/lib/modules-load.d"
-echo "nvidia" >"$SYSTEM_ROOT/usr/lib/modules-load.d/nvidia.conf"
-chmod 644 "$SYSTEM_ROOT/usr/lib/modules-load.d/nvidia.conf"
+	echo "nvidia-uvm" >${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia-uvm.conf
+	chmod 644 ${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia-uvm.conf
 
-echo "nvidia-uvm" >"$SYSTEM_ROOT/usr/lib/modules-load.d/nvidia-uvm.conf"
-chmod 644 "$SYSTEM_ROOT/usr/lib/modules-load.d/nvidia-uvm.conf"
+	dkms add -m nvidia -v ${DRIVER_VERSION}
+	dkms build -m nvidia -v ${DRIVER_VERSION}
+	dkms install -m nvidia -v ${DRIVER_VERSION}
+fi
 
-# ──────────────────────────────────────────────────────────────────────────────
-# ────────────────────────────── End Installation ──────────────────────────────
-# ──────────────────────────────────────────────────────────────────────────────
+if [ "$INSTALL_NVIDIA_OPENCL" = "true" ]; then
+	echo "Installing nvidia340-opencl..."
+
+	install -m 644 "nvidia.icd" "$SYSTEM_ROOT/etc/OpenCL/vendors"
+
+	install -m 755 "libnvidia-compiler.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib"
+
+	ln -sf "libnvidia-compiler.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-compiler.so"
+	ln -sf "libnvidia-compiler.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-compiler.so.1"
+
+	install -m 755 "libnvidia-opencl.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib"
+	ln -sf "libnvidia-opencl.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-opencl.so"
+	ln -sf "libnvidia-opencl.so.$DRIVER_VERSION" "$SYSTEM_ROOT/usr/lib/libnvidia-opencl.so.1"
+fi
 
 # Exit the driver directory
 popd
@@ -252,12 +256,11 @@ echo "blacklist nouveau" >"$SYSTEM_ROOT/etc/modprobe.d/disable-nouveau.conf"
 chroot "$SYSTEM_ROOT" rmmod nouveau || echo "Nouveau module not loaded."
 
 # Omit drm dracut module
-vmkdir usr/lib/dracut/dracut.conf.d
+mkdir ${SYSTEM_ROOT}/usr/lib/dracut/dracut.conf.d
 echo "omit_dracutmodules+=\" drm \"" >${SYSTEM_ROOT}/usr/lib/dracut/dracut.conf.d/99-nvidia.conf
 
-# # TODO
-# echo "Regenerating initramfs, please wait..."
-# dracut -f -q --regenerate-all
+echo "Regenerating initramfs, please wait..."
+dracut -f -q --regenerate-all
 
 # Remove the installer and extracted folder after completion
 echo "Cleaning up temporary installation assets..."
