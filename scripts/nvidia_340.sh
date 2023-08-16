@@ -261,7 +261,7 @@ mkdir "${SYSTEM_ROOT}/usr/lib/dracut/dracut.conf.d"
 echo "omit_dracutmodules+=\" drm \"" >"${SYSTEM_ROOT}/usr/lib/dracut/dracut.conf.d/99-nvidia.conf"
 
 echo "Regenerating initramfs, please wait..."
-dracut -f -q --regenerate-all
+chroot "${SYSTEM_ROOT}" dracut -f -q --regenerate-all
 
 # Remove the installer and extracted folder after completion
 echo "Cleaning up temporary installation assets..."
