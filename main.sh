@@ -27,6 +27,7 @@ source ./scripts/mac.sh
 source ./scripts/network.sh
 source ./scripts/xorg.sh
 source ./scripts/xfce.sh
+source ./scripts/nix.sh
 source ./scripts/broadcom-wl-dkms.sh
 source ./scripts/broadcom-wifi-fix.sh
 source ./scripts/nvidia_340.sh
