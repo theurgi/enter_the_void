@@ -293,7 +293,7 @@ install_base_system() {
 		${pkgs_particular_to_this_script[@]}
 
 	if [ "$LINUX_VERSION" != "linux" ]; then
-		xbps-remove -y linux linux-headers
+		chroot ${SYSTEM_ROOT} xbps-remove -y linux linux-headers
 	fi
 }
 
