@@ -109,6 +109,7 @@
 		"xconfig",
 		"xinit",
 		"xinitrc",
-		"xorg"
+		"xorg",
+		"zoneinfo"
 	]
 }
