@@ -26,7 +26,7 @@ mkdir -p "${STAGING_DIR}"
 DRIVER_VERSION="340.108"
 PKG="NVIDIA-Linux-x86_64-${DRIVER_VERSION}-no-compat32"
 DRIVER_URL="https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/${PKG}.run"
-EXPECTED_DRIVER_HASH="890d00ff2d1d1a602d7ce65e62d5c3fdb5d9096b61dbfa41e3348260e0c0cc068f92b32ee28a48404376e7a311e12ad1535c68d89e76a956ecabc4e452030f15"
+EXPECTED_DRIVER_HASH="6538bbec53b10f8d20977f9b462052625742e9709ef06e24cf2e55de5d0c55f1620a4bb21396cfd89ebc54c32f921ea17e3e47eaa95abcbc24ecbd144fb89028"
 
 # Source patch files
 AUR_PATCHES_URL="https://aur.archlinux.org/cgit/aur.git/snapshot/nvidia-340xx.tar.gz"
@@ -95,6 +95,7 @@ done
 install -m 755 nvidia_drv.so "${SYSTEM_ROOT}/usr/lib/xorg/modules/drivers"
 
 # GLX extension module for X
+mkdir -p "${SYSTEM_ROOT}/usr/lib/nvidia/xorg/"
 install -m 755 "libglx.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/nvidia/xorg/"
 ln -sf "libglx.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/nvidia/xorg/libglx.so.1"
 ln -sf "libglx.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/nvidia/xorg/libglx.so"
@@ -171,7 +172,7 @@ install -m 755 "libnvidia-glsi.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/"
 # CUDA
 install -m 755 "nvidia-cuda-mps-control" "${SYSTEM_ROOT}/usr/bin/"
 install -m 755 "nvidia-cuda-mps-server" "${SYSTEM_ROOT}/usr/bin/"
-gzip -c "nvidia-cuda-mps-control.1" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-cuda-mps-control.1.gz"
+gunzip -c "nvidia-cuda-mps-control.1.gz" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-cuda-mps-control.1"
 
 install -m 755 "libcuda.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/"
 ln -sf "libcuda.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/libcuda.so"
@@ -183,11 +184,11 @@ ln -sf "libnvcuvid.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/libnvcuvid.so.1
 
 # nvidia-xconfig
 install -m 755 "nvidia-xconfig" "${SYSTEM_ROOT}/usr/bin/"
-gzip -c "nvidia-xconfig.1" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-xconfig.1.gz"
+gunzip -c "nvidia-xconfig.1.gz" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-xconfig.1"
 
 # nvidia-settings
 install -m 755 "nvidia-settings" "${SYSTEM_ROOT}/usr/bin/"
-gzip -c "nvidia-settings.1" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-settings.1.gz"
+gunzip -c "nvidia-settings.1.gz" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-settings.1"
 install -m 644 "nvidia-settings.desktop" "${SYSTEM_ROOT}/usr/share/applications/"
 install -m 644 "nvidia-settings.png" "${SYSTEM_ROOT}/usr/share/pixmaps/"
 sed -e 's:__UTILS_PATH__:/usr/bin:' \
@@ -200,9 +201,10 @@ install -m 755 "nvidia-debugdump" "${SYSTEM_ROOT}/usr/bin/"
 
 # nvidia-smi
 install -m 755 "nvidia-smi" "${SYSTEM_ROOT}/usr/bin/"
-gzip -c "nvidia-smi.1" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-smi.1.gz"
+gunzip -c "nvidia-smi.1.gz" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-smi.1"
 
 # License and documentation.
+mkdir -p "${SYSTEM_ROOT}/usr/share/licenses/NVIDIA/"
 install -m 644 "LICENSE" "${SYSTEM_ROOT}/usr/share/licenses/NVIDIA/"
 install -m 644 "README.txt" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/README"
 install -m 644 "NVIDIA_Changelog" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/"
@@ -210,13 +212,15 @@ install -m 644 "NVIDIA_Changelog" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/"
 if [[ "${INSTALL_NVIDIA_DKMS}" = "true" ]]; then
 	echo "Installing nvidia340-dkms..."
 
-	# Ensure dkms is installed
-	xbps-install -Sy -r "${SYSTEM_ROOT}" dkms
+	# Ensure dkms and linux headers are installed
+	xbps-install -Sy -r "${SYSTEM_ROOT}" dkms "${LINUX_VERSION}-headers"
+
+	local COMPLETE_KERNEL_VERSION=$(chroot "${SYSTEM_ROOT}" xbps-query -l | grep -E "linux${KERNEL_VERSION}-[0-9]+" | grep -v headers | awk '{print $2}' | cut -d- -f2)
 
 	# Set up the source for DKMS
 	install -d "${SYSTEM_ROOT}/usr/src/nvidia-${DRIVER_VERSION}"
 	cat "kernel/uvm/dkms.conf.fragment" >>"kernel/dkms.conf"
-	cp -r "kernel/*" "${SYSTEM_ROOT}/usr/src/nvidia-${DRIVER_VERSION}"
+	cp -r kernel/* "${SYSTEM_ROOT}/usr/src/nvidia-${DRIVER_VERSION}"
 
 	# Set up module loading configuration
 	install -Dm644 /dev/null "${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia.conf"
@@ -225,10 +229,9 @@ if [[ "${INSTALL_NVIDIA_DKMS}" = "true" ]]; then
 	install -Dm644 /dev/null "${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia-uvm.conf"
 	echo "nvidia-uvm" >"${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia-uvm.conf"
 
-	# Build and install with DKMS
-	dkms add -m nvidia -v "${DRIVER_VERSION}"
-	dkms build -m nvidia -v "${DRIVER_VERSION}"
-	dkms install -m nvidia -v "${DRIVER_VERSION}"
+	chroot "${SYSTEM_ROOT}" dkms add -m nvidia -v "${DRIVER_VERSION}" -k "${COMPLETE_KERNEL_VERSION}"
+	chroot "${SYSTEM_ROOT}" dkms build -m nvidia -v "${DRIVER_VERSION}" -k "${COMPLETE_KERNEL_VERSION}"
+	chroot "${SYSTEM_ROOT}" dkms install -m nvidia -v "${DRIVER_VERSION}" -k "${COMPLETE_KERNEL_VERSION}"
 fi
 
 if [[ "${INSTALL_NVIDIA_OPENCL}" = "true" ]]; then
@@ -257,7 +260,7 @@ echo "blacklist nouveau" >"${SYSTEM_ROOT}/etc/modprobe.d/disable-nouveau.conf"
 chroot "${SYSTEM_ROOT}" rmmod nouveau || echo "Nouveau module not loaded."
 
 # Omit drm dracut module
-mkdir "${SYSTEM_ROOT}/usr/lib/dracut/dracut.conf.d"
+mkdir -p "${SYSTEM_ROOT}/usr/lib/dracut/dracut.conf.d"
 echo "omit_dracutmodules+=\" drm \"" >"${SYSTEM_ROOT}/usr/lib/dracut/dracut.conf.d/99-nvidia.conf"
 
 echo "Regenerating initramfs, please wait..."
@@ -265,7 +268,6 @@ chroot "${SYSTEM_ROOT}" dracut -f -q --regenerate-all
 
 # Remove the installer and extracted folder after completion
 echo "Cleaning up temporary installation assets..."
-rm -rf "${SYSTEM_ROOT}/tmp/$(basename "${PATCHED_DRIVER}")"
 rm -rf "${STAGING_DIR}"
 
 echo "Driver installation completed!"
