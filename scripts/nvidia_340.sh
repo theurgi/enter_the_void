@@ -89,6 +89,10 @@ for patch_file in $(ls ${STAGING_DIR}/nvidia-340xx/0*.patch | sort); do
 		echo "Applying patch for kernel $patch_version..."
 		patch -Np1 <"$patch_file"
 	fi
+
+	if [[ "${patch_version}" == "${KERNEL_VERSION}" ]]; then
+		break
+	fi
 done
 
 # X driver
