@@ -31,6 +31,7 @@ source ./scripts/nix.sh
 source ./scripts/broadcom-wl-dkms.sh
 source ./scripts/broadcom-wifi-fix.sh
 source ./scripts/nvidia_340.sh
+source ./scripts/mac_nvidia_fix.sh
 
 # Installation cleanup
 cleanup_and_reboot
