@@ -22,14 +22,14 @@ xbps-install -Suy xbps
 # Source each of the scripts you want to include
 source ./scripts/base_install.sh
 # source ./scripts/graphics.sh
-source ./scripts/rust.sh
+# source ./scripts/rust.sh
 source ./scripts/mac.sh
-source ./scripts/network.sh
+# source ./scripts/network.sh
 source ./scripts/xorg.sh
 source ./scripts/xfce.sh
 # source ./scripts/nix.sh
-source ./scripts/broadcom-wl-dkms.sh
-source ./scripts/broadcom-wifi-fix.sh
+# source ./scripts/broadcom-wl-dkms.sh
+# source ./scripts/broadcom-wifi-fix.sh
 source ./scripts/nvidia_340.sh
 source ./scripts/mac_nvidia_fix.sh
 

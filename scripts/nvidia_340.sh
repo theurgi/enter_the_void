@@ -242,7 +242,7 @@ if [[ "${INSTALL_NVIDIA_OPENCL}" = "true" ]]; then
 	echo "Installing nvidia340-opencl..."
 
 	# Replaces libOpenCL
-	xbps-install -Sy -r "${SYSTEM_ROOT}" ocl-icd
+	# xbps-install -Sy -r "${SYSTEM_ROOT}" ocl-icd
 
 	install -Dm 644 "nvidia.icd" "${SYSTEM_ROOT}/etc/OpenCL/vendors"
 
