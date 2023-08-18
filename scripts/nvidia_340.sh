@@ -51,8 +51,9 @@ declare -a DEV_PACKAGES=("patch" "wget" "tar")
 xbps-install -Sy "${DEV_PACKAGES[@]}"
 
 # Ensure the dependencies of the Nvidia drivers exist on the Void installation
-#declare -a INSTALLATION_PACKAGES=("libglvnd" "libvdpau" "libglapi")
-#xbps-install -Sy -r "${SYSTEM_ROOT}" "${INSTALLATION_PACKAGES[@]}"
+# "libglvnd"
+declare -a INSTALLATION_PACKAGES=("libvdpau" "libglapi")
+xbps-install -Sy -r "${SYSTEM_ROOT}" "${INSTALLATION_PACKAGES[@]}"
 
 if [[ ! -f "${UNPATCHED_DRIVER}" ]]; then
 	echo "Downloading the NVIDIA driver..."
@@ -208,10 +209,9 @@ install -m 755 "nvidia-smi" "${SYSTEM_ROOT}/usr/bin/"
 gunzip -c "nvidia-smi.1.gz" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-smi.1"
 
 # License and documentation.
-mkdir -p "${SYSTEM_ROOT}/usr/share/licenses/NVIDIA/"
-install -m 644 "LICENSE" "${SYSTEM_ROOT}/usr/share/licenses/NVIDIA/"
-install -m 644 "README.txt" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/README"
-install -m 644 "NVIDIA_Changelog" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/"
+install -Dm 644 "LICENSE" "${SYSTEM_ROOT}/usr/share/licenses/NVIDIA/"
+install -Dm 644 "README.txt" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/README"
+install -Dm 644 "NVIDIA_Changelog" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/"
 
 if [[ "${INSTALL_NVIDIA_DKMS}" = "true" ]]; then
 	echo "Installing nvidia340-dkms..."
@@ -219,7 +219,7 @@ if [[ "${INSTALL_NVIDIA_DKMS}" = "true" ]]; then
 	# Ensure dkms and linux headers are installed
 	xbps-install -Sy -r "${SYSTEM_ROOT}" dkms "${LINUX_VERSION}-headers"
 
-	local COMPLETE_KERNEL_VERSION=$(chroot "${SYSTEM_ROOT}" xbps-query -l | grep -E "linux${KERNEL_VERSION}-[0-9]+" | grep -v headers | awk '{print $2}' | cut -d- -f2)
+	COMPLETE_KERNEL_VERSION=$(chroot "${SYSTEM_ROOT}" xbps-query -l | grep -E "linux${KERNEL_VERSION}-[0-9]+" | grep -v headers | awk '{print $2}' | cut -d- -f2)
 
 	# Set up the source for DKMS
 	install -d "${SYSTEM_ROOT}/usr/src/nvidia-${DRIVER_VERSION}"
@@ -227,10 +227,10 @@ if [[ "${INSTALL_NVIDIA_DKMS}" = "true" ]]; then
 	cp -r kernel/* "${SYSTEM_ROOT}/usr/src/nvidia-${DRIVER_VERSION}"
 
 	# Set up module loading configuration
-	install -Dm644 /dev/null "${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia.conf"
+	install -Dm 644 /dev/null "${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia.conf"
 	echo "nvidia" >"${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia.conf"
 
-	install -Dm644 /dev/null "${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia-uvm.conf"
+	install -Dm 644 /dev/null "${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia-uvm.conf"
 	echo "nvidia-uvm" >"${SYSTEM_ROOT}/usr/lib/modules-load.d/nvidia-uvm.conf"
 
 	chroot "${SYSTEM_ROOT}" dkms add -m nvidia -v "${DRIVER_VERSION}" -k "${COMPLETE_KERNEL_VERSION}"
@@ -244,14 +244,14 @@ if [[ "${INSTALL_NVIDIA_OPENCL}" = "true" ]]; then
 	# Replaces libOpenCL
 	xbps-install -Sy -r "${SYSTEM_ROOT}" ocl-icd
 
-	install -m 644 "nvidia.icd" "${SYSTEM_ROOT}/etc/OpenCL/vendors"
+	install -Dm 644 "nvidia.icd" "${SYSTEM_ROOT}/etc/OpenCL/vendors"
 
-	install -m 755 "libnvidia-compiler.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib"
+	install -Dm 755 "libnvidia-compiler.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib"
 
 	ln -sf "libnvidia-compiler.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/libnvidia-compiler.so"
 	ln -sf "libnvidia-compiler.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/libnvidia-compiler.so.1"
 
-	install -m 755 "libnvidia-opencl.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib"
+	install -Dm 755 "libnvidia-opencl.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib"
 	ln -sf "libnvidia-opencl.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/libnvidia-opencl.so"
 	ln -sf "libnvidia-opencl.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/libnvidia-opencl.so.1"
 fi

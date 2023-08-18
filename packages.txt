@@ -15,8 +15,6 @@ python3-devel
 pywal
 tlp
 unzip
-wireguard-dkms
-wireguard-tools
 xbindkeys
 xfce4-pulseaudio-plugin
 yt-dlp
