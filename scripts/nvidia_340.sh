@@ -209,7 +209,7 @@ install -m 755 "nvidia-smi" "${SYSTEM_ROOT}/usr/bin/"
 gunzip -c "nvidia-smi.1.gz" >"${SYSTEM_ROOT}/usr/share/man/man1/nvidia-smi.1"
 
 # License and documentation.
-install -Dm 644 "LICENSE" "${SYSTEM_ROOT}/usr/share/licenses/NVIDIA/"
+cp "LICENSE" "${SYSTEM_ROOT}/usr/share/licenses/NVIDIA/LICENSE"
 install -Dm 644 "README.txt" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/README"
 install -Dm 644 "NVIDIA_Changelog" "${SYSTEM_ROOT}/usr/share/doc/NVIDIA/"
 
