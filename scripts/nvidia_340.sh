@@ -51,8 +51,8 @@ declare -a DEV_PACKAGES=("patch" "wget" "tar")
 xbps-install -Sy "${DEV_PACKAGES[@]}"
 
 # Ensure the dependencies of the Nvidia drivers exist on the Void installation
-declare -a INSTALLATION_PACKAGES=("libglvnd" "libvdpau" "libglapi")
-xbps-install -Sy -r "${SYSTEM_ROOT}" "${INSTALLATION_PACKAGES[@]}"
+#declare -a INSTALLATION_PACKAGES=("libglvnd" "libvdpau" "libglapi")
+#xbps-install -Sy -r "${SYSTEM_ROOT}" "${INSTALLATION_PACKAGES[@]}"
 
 if [[ ! -f "${UNPATCHED_DRIVER}" ]]; then
 	echo "Downloading the NVIDIA driver..."
@@ -240,6 +240,9 @@ fi
 
 if [[ "${INSTALL_NVIDIA_OPENCL}" = "true" ]]; then
 	echo "Installing nvidia340-opencl..."
+
+	# Replaces libOpenCL
+	xbps-install -Sy -r "${SYSTEM_ROOT}" ocl-icd
 
 	install -m 644 "nvidia.icd" "${SYSTEM_ROOT}/etc/OpenCL/vendors"
 
