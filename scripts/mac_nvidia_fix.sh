@@ -32,10 +32,10 @@ GRUB_CONF_DIR="/mnt/etc/grub.d"
 CONF_FILE="$GRUB_CONF_DIR/01_enable_vga.conf"
 
 # Create the 01_enable_vga.conf file
-cat <<EOF >"$CONF_FILE"
-setpci -s "$BRIDGE_ADDR" 3e.b=8
-setpci -s "$DISPLAY_ADDR" 04.b=7
-EOF
+echo 'cat << EOF' >"$CONF_FILE"
+echo "setpci -s \"$BRIDGE_ADDR\" 3e.b=8" >>"$CONF_FILE"
+echo "setpci -s \"$DISPLAY_ADDR\" 04.b=7" >>"$CONF_FILE"
+echo 'EOF' >>"$CONF_FILE"
 
 # Ensure the file is executable
 chmod 755 "$CONF_FILE"
