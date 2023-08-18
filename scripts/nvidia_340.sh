@@ -107,8 +107,8 @@ ln -sf "libglx.so.${DRIVER_VERSION}" "${SYSTEM_ROOT}/usr/lib/nvidia/xorg/libglx.
 # Create Xorg config
 cat <<'EOF' >"${SYSTEM_ROOT}/etc/X11/xorg.conf.d/20-nvidia.conf"
 Section "Files"
-  ModulePath   "/usr/lib64/nvidia/xorg"
-  ModulePath   "/usr/lib64/xorg/modules"
+  ModulePath   "/usr/lib/nvidia/xorg"
+  ModulePath   "/usr/lib/xorg/modules"
 EndSection
 
 Section "Device"
